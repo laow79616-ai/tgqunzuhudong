@@ -14,7 +14,7 @@ function selectedProxyIds(){
 async function deleteProxy(id, name){
   if(!confirm('删除代理【'+(name||id)+'】？有号的线路不会删')) return;
   const r=await fetch('/pools/proxies/'+id,{method:'DELETE'});
-  let d={}; try{d=await r.json()}catch(e){return alert('失败')}
+  let d={}; const txt=await r.text(); try{d=JSON.parse(txt)}catch(e){return alert('删除失败 HTTP '+r.status+' '+txt.slice(0,120))}
   if(!r.ok) return alert(d.detail||JSON.stringify(d));
   if(typeof loadProxies==='function') loadProxies();
 }
@@ -30,7 +30,7 @@ async function deleteSelectedProxies(){
 async function deleteAllProxies(){
   if(!confirm('清空全部代理IP？水军号会留在库里，稍后可一键重新分配')) return;
   const r=await fetch('/pools/proxies/clear-all',{method:'POST'});
-  let d={}; try{d=await r.json()}catch(e){return alert('失败')}
+  let d={}; const txt=await r.text(); try{d=JSON.parse(txt)}catch(e){return alert('删除失败 HTTP '+r.status+' '+txt.slice(0,120))}
   alert(d.msg||JSON.stringify(d));
   if(typeof loadProxies==='function') loadProxies();
   if(typeof loadAccounts==='function') loadAccounts();
@@ -41,16 +41,10 @@ function apiSelectAll(on){
   document.querySelectorAll('.api-ck').forEach(c=>c.checked=!!on);
 }
 function selectedApiIds(){
-  return [...document.querySelectorAll('.api-ck:checked')].map(c=>parseInt(c.value)).filter(Boolean);
-}
-async function deleteApi(id){
-  if(!confirm('删除该 API？水军号会留在库里')) return;
-  const r=await fetch('/pools/apis/'+id,{method:'DELETE'});
-  let d={}; try{d=await r.json()}catch(e){return alert('失败')}
-  if(!r.ok) return alert(d.detail||JSON.stringify(d));
-  if(typeof loadApis==='function') loadApis();
+  return [...document.querySelectorAll('.api-ck:checked')].map(el=>parseInt(el.value)).filter(Boolean);
 }
 async function deleteSelectedApis(){
+  alert('批量删除点击，勾选 '+selectedApiIds().length);
   const ids=selectedApiIds();
   if(!ids.length) return alert('先勾选');
   if(!confirm('删除选中 '+ids.length+' 条 API？号留在库')) return;
@@ -62,7 +56,7 @@ async function deleteSelectedApis(){
 async function deleteAllApis(){
   if(!confirm('清空全部 API？水军号留在库，稍后重新分配')) return;
   const r=await fetch('/pools/apis/clear-all',{method:'POST'});
-  let d={}; try{d=await r.json()}catch(e){return alert('失败')}
+  let d={}; const txt=await r.text(); try{d=JSON.parse(txt)}catch(e){return alert('删除失败 HTTP '+r.status+' '+txt.slice(0,120))}
   alert(d.msg||JSON.stringify(d));
   if(typeof loadApis==='function') loadApis();
   if(typeof loadAccounts==='function') loadAccounts();
@@ -84,6 +78,12 @@ async function rebalanceAccounts(){
 
 
 
+
+
+window.deleteApi = deleteApi;
+window.deleteSelectedApis = deleteSelectedApis;
+window.deleteAllApis = deleteAllApis;
+window.selectedApiIds = selectedApiIds;
 
 </script>
 <style>
@@ -116,7 +116,7 @@ input,textarea,select{background:#0f172a;border:1px solid #334155;color:#e2e8f0}
 <button onclick="switchTab('apis')" id="tab-apis" class="nav-item px-3 py-1.5 rounded-lg text-sm">API池</button>
 <button onclick="switchTab('proxies')" id="tab-proxies" class="nav-item px-3 py-1.5 rounded-lg text-sm">代理池</button>
 <button onclick="switchTab('targets')" id="tab-targets" class="nav-item px-3 py-1.5 rounded-lg text-sm">目标</button>
-<button onclick="switchTab('join')" id="tab-join" class="nav-item px-3 py-1.5 rounded-lg text-sm">开始批量加入</button>
+<button onclick="switchTab('join')" id="tab-join" class="nav-item px-3 py-1.5 rounded-lg text-sm">开始批量加入</button><button type="button" onclick="document.getElementById('panelGroupOps').classList.remove('hidden')" class="px-3 py-1 rounded bg-slate-700 text-sm">水军组</button>
     <a href="/logout" class="nav-item px-3 py-1.5 rounded-lg text-sm bg-red-800 ml-auto">退出</a>
     <button type="button" onclick="checkAllHealth()" class="nav-item px-3 py-1.5 rounded-lg text-sm bg-amber-700">一键全部检测</button>
 </div>
@@ -1099,7 +1099,7 @@ function selectedProxyIds(){
 async function deleteProxy(id, name){
   if(!confirm('删除代理【'+(name||id)+'】？有号的线路不会删')) return;
   const r=await fetch('/pools/proxies/'+id,{method:'DELETE'});
-  let d={}; try{d=await r.json()}catch(e){return alert('失败')}
+  let d={}; const txt=await r.text(); try{d=JSON.parse(txt)}catch(e){return alert('删除失败 HTTP '+r.status+' '+txt.slice(0,120))}
   if(!r.ok) return alert(d.detail||JSON.stringify(d));
   if(typeof loadProxies==='function') loadProxies();
 }
@@ -1122,6 +1122,12 @@ async function deleteAllProxies(){
   if(typeof loadProxies==='function') loadProxies();
 }
 
+
+window.deleteApi = deleteApi;
+window.deleteSelectedApis = deleteSelectedApis;
+window.deleteAllApis = deleteAllApis;
+window.selectedApiIds = selectedApiIds;
+
 </script>
 
 <script>
@@ -1138,8 +1144,87 @@ window.rebalanceIp = async function(){
     alert('分配失败: '+e);
   }
 };
+
+window.deleteApi = deleteApi;
+window.deleteSelectedApis = deleteSelectedApis;
+window.deleteAllApis = deleteAllApis;
+window.selectedApiIds = selectedApiIds;
+
 </script>
 
-<script src="/static/notes.js?v=1"></script>
-</body>
+<script src="/static/notes.js?v=1">
+window.deleteApi = deleteApi;
+window.deleteSelectedApis = deleteSelectedApis;
+window.deleteAllApis = deleteAllApis;
+window.selectedApiIds = selectedApiIds;
+
+</script>
+
+<!-- fix-delete-global -->
+<script>
+function selectedApiIds(){
+  return [...document.querySelectorAll('.api-ck:checked')].map(el=>parseInt(el.value)).filter(Boolean);
+}
+async function deleteApi(id){
+  if(!confirm('删除该 API？水军号会留在库里')) return;
+  const r = await fetch('/pools/apis/'+id, {method:'DELETE'});
+  const txt = await r.text();
+  let d = {};
+  try { d = JSON.parse(txt); } catch(e) { alert('删除失败 HTTP '+r.status+' '+txt.slice(0,160)); return; }
+  if(!r.ok){ alert(d.detail || JSON.stringify(d)); return; }
+  alert(d.msg || '已删除');
+  if(typeof loadApis==='function') loadApis();
+  else location.reload();
+}
+async function deleteSelectedApis(){
+  const ids = selectedApiIds();
+  if(!ids.length) return alert('先勾选');
+  if(!confirm('删除选中 '+ids.length+' 条 API？号留在库')) return;
+  const r = await fetch('/pools/apis/delete-batch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids})});
+  const txt = await r.text();
+  let d = {};
+  try { d = JSON.parse(txt); } catch(e) { alert('删除失败 HTTP '+r.status+' '+txt.slice(0,160)); return; }
+  alert(d.msg || JSON.stringify(d));
+  if(typeof loadApis==='function') loadApis();
+  else location.reload();
+}
+async function deleteAllApis(){
+  if(!confirm('清空全部 API？水军号留在库')) return;
+  const r = await fetch('/pools/apis/clear-all', {method:'POST'});
+  const txt = await r.text();
+  alert(txt.slice(0,180));
+  location.reload();
+}
+</script>
+
+
 </html>
+
+<section id="panelGroupOps" class="p-4 space-y-3 text-white">
+  <h2 class="text-lg">水军组 / 目标组 / 文案库</h2>
+  <textarea id="agAccounts" rows="3" placeholder="20个水军账号ID，一行一个" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"></textarea>
+  <input id="agProxy" placeholder="代理ID" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
+  <button type="button" onclick="createArmy()" class="px-3 py-1 rounded bg-blue-600 text-sm">保存水军组</button>
+  <textarea id="tbLinks" rows="4" placeholder="10个群链接，一行一个" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"></textarea>
+  <button type="button" onclick="createBundle()" class="px-3 py-1 rounded bg-blue-600 text-sm">保存目标组</button>
+  <input id="mapArmy" placeholder="水军组ID" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
+  <input id="mapBundle" placeholder="目标组ID" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
+  <button type="button" onclick="mapJoin()" class="px-3 py-1 rounded bg-emerald-700 text-sm">生成加入计划</button>
+  <div id="mapOut" class="text-xs text-gray-300 whitespace-pre-wrap"></div>
+</section>
+<script>
+async function createArmy(){
+  const account_ids=document.getElementById('agAccounts').value.split(/\s+/).map(x=>parseInt(x)).filter(Boolean);
+  const r=await fetch('/group-ops/army',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'水军组',proxy_id:parseInt(document.getElementById('agProxy').value||'0'),account_ids})});
+  alert((await r.text()).slice(0,240));
+}
+async function createBundle(){
+  const links=document.getElementById('tbLinks').value.split(/\n/).map(x=>x.trim()).filter(Boolean);
+  const r=await fetch('/group-ops/bundles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'目标组',links})});
+  alert((await r.text()).slice(0,240));
+}
+async function mapJoin(){
+  const r=await fetch('/group-ops/join-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({army_group_id:parseInt(document.getElementById('mapArmy').value),bundle_id:parseInt(document.getElementById('mapBundle').value)})});
+  document.getElementById('mapOut').textContent=await r.text();
+}
+</script>

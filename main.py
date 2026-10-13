@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import engine, Base
-from routers import pool_assign, accounts, join, chat, targets, pools
+from routers import pool_assign, accounts, join, chat, targets, pools, group_ops
 import uvicorn
 
 app = FastAPI(title="Telegram 水军管理系统", version="2.0")
@@ -13,6 +13,7 @@ app.include_router(join.router)
 app.include_router(chat.router)
 app.include_router(targets.router)
 app.include_router(pools.router)
+app.include_router(group_ops.router)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
