@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TG 水军管理系统</title>
+<title>飞机群组互动系统</title>
 <script src="https://cdn.tailwindcss.com">
 function proxySelectAll(on){
   document.querySelectorAll('.proxy-ck').forEach(c=>c.checked=!!on);
@@ -105,7 +105,7 @@ input,textarea,select{background:#0f172a;border:1px solid #334155;color:#e2e8f0}
 <div class="border-b border-gray-800 sticky top-0 z-50 bg-[#0b1120]">
 <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
 <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">✈️</div>
-<div><h1 class="text-lg font-bold">TG 水军管理系统</h1>
+<div><h1 class="text-lg font-bold">飞机群组互动系统</h1>
 <p class="text-xs text-gray-500">左侧选线路 · 右侧操作水军</p></div>
 </div></div>
 
@@ -115,8 +115,12 @@ input,textarea,select{background:#0f172a;border:1px solid #334155;color:#e2e8f0}
 <button onclick="switchTab('add')" id="tab-add" class="nav-item px-3 py-1.5 rounded-lg text-sm">增加水军</button>
 <button onclick="switchTab('apis')" id="tab-apis" class="nav-item px-3 py-1.5 rounded-lg text-sm">API池</button>
 <button onclick="switchTab('proxies')" id="tab-proxies" class="nav-item px-3 py-1.5 rounded-lg text-sm">代理池</button>
-<button onclick="switchTab('targets')" id="tab-targets" class="nav-item px-3 py-1.5 rounded-lg text-sm">目标</button>
-<button onclick="switchTab('join')" id="tab-join" class="nav-item px-3 py-1.5 rounded-lg text-sm">开始批量加入</button><button type="button" onclick="document.getElementById('panelGroupOps').classList.remove('hidden')" class="px-3 py-1 rounded bg-slate-700 text-sm">水军组</button>
+<button onclick="switchTab('targets')" id="tab-targets" class="nav-item px-3 py-1.5 rounded-lg text-sm">目标群组</button>
+
+<button onclick="switchTab('collect')" id="tab-collect" class="nav-item px-3 py-1.5 rounded-lg text-sm">采集库</button>
+
+<button onclick="switchTab('fw')" id="tab-fw" class="nav-item px-3 py-1.5 rounded-lg text-sm">代理组</button>
+<button onclick="switchTab('photos')" id="tab-photos" class="nav-item px-3 py-1.5 rounded-lg text-sm">图片库</button>
     <a href="/logout" class="nav-item px-3 py-1.5 rounded-lg text-sm bg-red-800 ml-auto">退出</a>
     <button type="button" onclick="checkAllHealth()" class="nav-item px-3 py-1.5 rounded-lg text-sm bg-amber-700">一键全部检测</button>
 </div>
@@ -178,7 +182,7 @@ input,textarea,select{background:#0f172a;border:1px solid #334155;color:#e2e8f0}
 <div id="panel-apis" class="panel hidden">
 <div class="card rounded-xl p-5 mb-4">
 <textarea id="apiBatchText" rows="4" class="w-full px-3 py-2 rounded text-sm mb-3"></textarea>
-<button onclick="batchAddApis()" class="btn-primary px-5 py-2 rounded">批量添加</button>
+<p class="text-xs text-gray-400 mb-2">每条 API 最多绑 5 个水军号。一组 22 个号配 5 条。</p><button onclick="batchAddApis()" class="btn-primary px-5 py-2 rounded">批量添加</button>
 <p id="apiMsg" class="mt-2 text-sm text-green-400"></p>
 </div>
 <div class="card rounded-xl p-5"><div id="apiPoolSummary" class="text-xs text-gray-400 mb-2"></div><div id="apiTools" class="flex flex-wrap gap-2 mb-3 items-center">
@@ -209,41 +213,221 @@ input,textarea,select{background:#0f172a;border:1px solid #334155;color:#e2e8f0}
 
 <div id="panel-targets" class="panel hidden">
 <div class="card rounded-xl p-5 mb-4">
-<div class="flex gap-3 mb-3">
-<input id="targetName" placeholder="备注" class="px-3 py-2 rounded flex-1">
-<input id="targetLink" placeholder="链接" class="px-3 py-2 rounded flex-[2]">
-</div>
-<button onclick="addTarget()" class="btn-primary px-5 py-2 rounded">添加</button>
+<p class="text-xs text-gray-400 mb-2">批量粘贴群链接，一行一个。系统用已有水军号识别群中文名称后入库。</p>
+<textarea id="targetBatchText" rows="6" placeholder="https://t.me/xxxx&#10;https://t.me/+xxxx" class="w-full px-3 py-2 rounded text-sm mb-3"></textarea>
+<button onclick="batchAddTargets()" class="btn-primary px-5 py-2 rounded">批量添加群组</button>
 <p id="targetMsg" class="mt-2 text-sm text-green-400"></p>
 </div>
-<div class="card rounded-xl p-5"><div id="targetList" class="space-y-2 text-sm"></div></div>
-</div>
-
-<div id="panel-join" class="panel hidden">
 <div class="card rounded-xl p-5">
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-<div class="text-xs text-gray-400 mb-1">水军池共 <span id="joinAccCount">0</span> 个 · 已选 <span id="joinAccSelected">0</span></div>
-<div class="flex gap-2 mb-2">
-  <button type="button" id="joinSelectAll" onclick="toggleJoinAccounts()" class="text-xs px-3 py-1 rounded bg-slate-700">一键全选</button>
-  <button type="button" onclick="clearJoinAccounts()" class="text-xs px-3 py-1 rounded bg-slate-700">取消全选</button>
-</div>
-<select id="joinAccounts" onchange="updateJoinCounts()" multiple class="h-36 px-2 py-1 rounded text-sm"></select>
-<div class="text-xs text-gray-400 mb-1">目标共 <span id="joinTargetCount">0</span> 个 · 已选 <span id="joinTargetSelected">0</span></div>
-<select id="joinTargets" onchange="updateJoinCounts()" multiple class="h-36 px-2 py-1 rounded text-sm"></select>
-</div>
-<div class="flex items-center gap-3 mb-3 flex-wrap">
-  <label class="text-sm text-gray-400">间隔(秒)</label>
-  <input id="joinInterval" type="number" value="180" min="5" class="w-24 px-2 py-1 rounded text-sm">
-  <button onclick="doJoin()" class="btn-primary px-6 py-2 rounded">开始批量加入</button>
-  <button onclick="doLeave()" class="px-6 py-2 rounded bg-red-800">一键退出</button>
-  <button onclick="stopJoinJob()" class="px-6 py-2 rounded bg-orange-700">停止加入</button>
-</div>
-<div id="joinStatus" class="text-sm space-y-1 mb-3 max-h-40 overflow-y-auto"></div>
-<div id="joinLiveList" class="mt-3 max-h-64 overflow-y-auto text-sm space-y-1"></div><pre id="joinResult" class="mt-2 text-xs bg-black/30 p-3 rounded max-h-48 overflow-auto"></pre>
-</div>
+  <div id="targetTotal" class="text-sm text-sky-300 mb-2">总计 0 条 · 0 组</div>
+  <div class="flex gap-3" style="min-height:60vh">
+    <div id="targetGroupNav" class="w-44 shrink-0 space-y-1 overflow-auto max-h-[70vh]"></div>
+    <div id="targetList" class="flex-1 space-y-2 text-sm overflow-auto max-h-[70vh]"></div>
+  </div>
 </div>
 </div>
 
+<div id="panel-collect" class="panel hidden p-4 space-y-3">
+  <h2 class="text-lg">采集库</h2>
+  <p class="text-xs text-gray-400">这里显示两类记录：监听号采到的真人消息，以及水军回复群的记录（来源以“水军回复”开头）。也可上传本地文案。</p>
+  <div class="flex gap-2 items-center">
+    <input id="copyFile" type="file" accept=".txt,.csv,.md"/>
+    <button type="button" onclick="importCopyFile()" class="px-3 py-1 rounded bg-blue-600 text-sm">上传本地文案并入库</button>
+    <button type="button" onclick="loadCopies()" class="px-3 py-1 rounded bg-slate-600 text-sm">刷新日志</button>
+  </div>
+  <div id="copyCount" class="text-xs text-sky-300"></div>
+  <div class="overflow-auto max-h-[60vh] border border-slate-700 rounded">
+    <table class="w-full text-xs">
+      <thead class="bg-slate-800 sticky top-0">
+        <tr><th class="p-2 text-left">时间</th><th class="p-2 text-left">来源</th><th class="p-2 text-left">内容</th></tr>
+      </thead>
+      <tbody id="copyTable"></tbody>
+    </table>
+  </div>
+  <input id="fwCtx" placeholder="用一条真人消息测试匹配" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
+  <button type="button" onclick="fwMatch()" class="px-3 py-1 rounded bg-emerald-700 text-sm">测试接近度</button>
+  <div id="fwOut" class="text-xs text-gray-300 whitespace-pre-wrap"></div>
+</div>
+<div id="panel-photos" class="panel hidden p-4 space-y-3">
+  <h2 class="text-lg">图片库</h2>
+  <p class="text-xs text-gray-400">上传头像。一键同步资料时，系统从这里给每个水军自由配图。</p>
+  <input id="photoFiles" type="file" accept="image/*" multiple/>
+  <button type="button" onclick="fwUploadPhoto()" class="px-3 py-1 rounded bg-slate-600 text-sm">上传图片</button><span id="photoMsg" class="text-xs text-sky-300 ml-2"></span>
+  <div id="photoGrid" class="grid grid-cols-4 gap-3 mt-3"></div>
+</div>
+</div><div id="panel-fw" class="panel hidden"><section id="panelFramework" class="p-4 space-y-4 text-sm">
+  <h2 class="text-lg font-semibold">代理组运行</h2>
+  <p class="text-xs text-gray-400">选水军管理里的一组（自带 22 个号）和目标群组里的一组（10 个群），再保存。资料同步仍在右侧。</p>
+  <div class="grid md:grid-cols-2 gap-3">
+    <div class="p-3 rounded bg-slate-900 border border-slate-700 space-y-2">
+      <div>建组</div>
+      <input id="fwName" placeholder="组名，可留空用代理名" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"/>
+      <select id="fwProxyPick" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"></select>
+      <div id="fwAccPreview" class="text-xs text-gray-400">未选水军组</div>
+      <select id="fwTargetPick" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"></select>
+      <div id="fwLinkPreview" class="text-xs text-gray-400">未选目标组</div>
+      <button type="button" onclick="fwCreateFromPick()" class="px-3 py-1 rounded bg-blue-600">保存代理组</button>
+      <button type="button" onclick="fwReply(1)" class="px-3 py-1 rounded bg-emerald-700">一键开始回复</button>
+      <button type="button" onclick="fwReply(0)" class="px-3 py-1 rounded bg-red-800">一键停止回复</button>
+      
+      <div id="fwOut" class="text-xs text-gray-300 whitespace-pre-wrap"></div>
+    </div>
+    <div class="p-3 rounded bg-slate-900 border border-slate-700 space-y-2">
+      <div>资料 + 图片库</div>
+      <input id="fwFirst" placeholder="名字" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"/>
+      <input id="fwLast" placeholder="姓氏" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"/>
+      <input id="fwAbout" placeholder="简介" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"/>
+      <input id="fwGroupIds" placeholder="要同步的组ID，逗号分隔" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600"/>
+      <input id="fwPhoto" type="file" class="text-xs"/>
+      <button type="button" onclick="fwUploadPhoto()" class="px-3 py-1 rounded bg-slate-600">上传图片</button>
+      <button type="button" onclick="fwSyncProfile()" class="px-3 py-1 rounded bg-blue-600">一键同步资料</button>
+    </div>
+  </div>
+  <div id="fwList" class="text-xs text-gray-300 whitespace-pre-wrap"></div>
+</section>
+<script>
+async function fwCreate(){
+  const account_ids=document.getElementById('fwAccounts').value.split(/\s+/).map(x=>parseInt(x)).filter(Boolean);
+  const links=document.getElementById('fwLinks').value.split(/\n/).map(x=>x.trim()).filter(Boolean);
+  const r=await fetch('/framework/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    name:document.getElementById('fwName').value,
+    proxy_id:parseInt(document.getElementById('fwProxy').value||'0'),
+    account_ids, links
+  })});
+  document.getElementById('fwOut').textContent=await r.text();
+  
+async function loadCopies(){
+  const r=await fetch('/framework/copies');
+  const d=await r.json();
+  const box=document.getElementById('copyTable');
+  const cnt=document.getElementById('copyCount');
+  if(cnt) cnt.textContent='共 '+(d||[]).length+' 条';
+  if(!box) return;
+  box.innerHTML=(d||[]).map(x=>{
+    const t=new Date((x.created_at||0)*1000).toLocaleString();
+    const src=x.source_group||'监听';
+    const srcHtml=src.replace('水军回复','<span class="text-green-400 font-semibold">水军回复</span>');
+    return '<tr class="border-t border-slate-800"><td class="p-2 whitespace-nowrap">'+t+'</td><td class="p-2">'+srcHtml+'</td><td class="p-2">'+ (x.text||'').replace(/</g,'<') +'</td></tr>';
+  }).join('')||'<tr><td class="p-2 text-gray-500" colspan="3">暂无</td></tr>';
+}
+async function loadPhotos(){
+  const d=await (await fetch('/framework/photos')).json();
+  const box=document.getElementById('photoGrid');
+  if(!box) return;
+  if(!d.length){ box.innerHTML='<div class="text-gray-500 text-sm">还没有图片</div>'; return; }
+  box.innerHTML=d.map(x=>'<div class="bg-slate-800 p-2 rounded text-xs"><img src="/uploads/avatars/'+String(x.path||'').split('/').pop()+'" class="w-full h-28 object-cover rounded mb-1"/><div>#'+x.id+' 已用'+(x.used||0)+'</div></div>').join('');
+}
+
+fwLoad();
+}
+async function fwLoad(){
+  const r=await fetch('/framework/groups');
+  const d=await r.json();
+  const box=document.getElementById('fwList');
+  if(!box) return;
+  box.innerHTML = (d||[]).map(g=>`<div class="bg-slate-900 border border-slate-700 rounded px-3 py-2 mb-2 flex justify-between items-center"><div>#${g.id} ${g.name} · 代理${g.proxy_id} · 槽${g.slots} · 监听${g.monitor_online}</div><button type="button" onclick="fwDeleteGroup(${g.id})" class="text-xs px-2 py-1 rounded bg-red-800">删除这组</button></div>`).join('') || '<div class="text-gray-500">还没有保存的代理组</div>';
+}
+async function fwDeleteGroup(id){
+  if(!confirm('删除代理组 '+id+'？')) return;
+  const r=await fetch('/framework/groups/'+id,{method:'DELETE'});
+  document.getElementById('fwOut').textContent=await r.text();
+  fwLoad();
+}
+async function loadFwPicks(){
+  const proxies=await (await fetch('/pools/proxies')).json();
+  const accounts=await (await fetch('/accounts/')).json();
+  const targets=await (await fetch('/targets/')).json();
+  window._proxyAccounts={};
+  (accounts||[]).forEach(a=>{ const k=a.proxy_id||0; (window._proxyAccounts[k]=window._proxyAccounts[k]||[]).push(a); });
+  const ps=document.getElementById('fwProxyPick');
+  if(ps){
+    ps.innerHTML='<option value="">选择水军管理组</option>'+(proxies||[]).map((p,i)=>`<option value="${p.id}">第${i+1}组 · ${p.name} · 已绑${p.used||0}/22</option>`).join('');
+    ps.onchange=()=>{
+      const list=window._proxyAccounts[ps.value]||[];
+      document.getElementById('fwAccPreview').textContent=list.length?('第组 '+list.length+' 个号：'+list.slice(0,22).map(a=>a.phone||a.id).join('，')):'这组还没有号';
+    };
+  }
+  window._targetGroups=[];
+  for(let i=0;i<(targets||[]).length && window._targetGroups.length<50;i+=10) window._targetGroups.push(targets.slice(i,i+10));
+  const ts=document.getElementById('fwTargetPick');
+  if(ts){
+    ts.innerHTML='<option value="">选择目标群组</option>'+window._targetGroups.map((g,i)=>`<option value="${i}">第${i+1}组 · ${g.length}个群 · ${(g[0]&&g[0].name)||''}</option>`).join('');
+    ts.onchange=()=>{
+      const g=window._targetGroups[ts.value]||[];
+      document.getElementById('fwLinkPreview').textContent=g.length?g.map(x=>x.name).join(' / '):'未选目标组';
+    };
+  }
+}
+async function fwCreateFromPick(){
+  const proxyId=document.getElementById('fwProxyPick').value;
+  const ti=document.getElementById('fwTargetPick').value;
+  const accs=(window._proxyAccounts[proxyId]||[]).slice(0,22);
+  const links=(window._targetGroups[ti]||[]).map(x=>x.link);
+  if(accs.length!==22) return alert('所选水军组必须正好 22 个号，当前 '+accs.length);
+  if(links.length!==10) return alert('所选目标组必须正好 10 个群，当前 '+links.length);
+  const name=document.getElementById('fwName').value || ('代理组-'+proxyId);
+  const r=await fetch('/framework/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, proxy_id:parseInt(proxyId), account_ids:accs.map(a=>a.id), links})});
+  document.getElementById('fwOut').textContent=await r.text();
+  fwLoad();
+}
+async function fwSyncProfile(){
+  const group_ids=document.getElementById('fwGroupIds').value.split(/[,，\s]+/).map(x=>parseInt(x)).filter(Boolean);
+  if(!group_ids.length) return alert('组ID填数字，例如 1');
+  const r=await fetch('/framework/profile/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    group_ids,
+    first_name:document.getElementById('fwFirst').value,
+    last_name:document.getElementById('fwLast').value,
+    about:document.getElementById('fwAbout').value
+  })});
+  document.getElementById('fwOut').textContent=await r.text();
+}
+async function fwUploadPhoto(){
+  const input=document.getElementById('photoFiles') || document.getElementById('fwPhoto');
+  const files=[...(input.files||[])];
+  if(!files.length) return alert('先选图片');
+  const box=document.getElementById('photoMsg');
+  let ok=0, fail=[];
+  for(const f of files){
+    const fd=new FormData(); fd.append('file', f);
+    const r=await fetch('/framework/photos',{method:'POST',body:fd,credentials:'same-origin'});
+    const txt=await r.text();
+    if(txt.includes('<!DOCTYPE') || txt.includes('请先登录')){
+      if(box) box.textContent='登录已失效，请退出后重新登录再上传';
+      return;
+    }
+    if(r.ok) ok++; else fail.push(f.name+' '+txt.slice(0,60));
+  }
+  if(box) box.textContent='成功 '+ok+' 失败 '+fail.length+' '+(fail[0]||'');
+  if(typeof loadPhotos==='function') loadPhotos();
+}
+async function fwOnline(){
+  const gid=document.getElementById('fwGid').value, slot=document.getElementById('fwSlot').value;
+  const r=await fetch(`/framework/groups/${gid}/online?slot=${slot}`,{method:'POST'});
+  document.getElementById('fwOut').textContent=await r.text(); fwLoad();
+}
+async function fwMonitor(n){
+  const gid=document.getElementById('fwGid').value;
+  const r=await fetch(`/framework/groups/${gid}/monitor?pair_index=${n}`,{method:'POST'});
+  document.getElementById('fwOut').textContent=await r.text();
+}
+async function fwReplace(){
+  const gid=document.getElementById('fwGid').value, slot=document.getElementById('fwSlot').value;
+  const r=await fetch(`/framework/groups/${gid}/slots/${slot}/replace`,{method:'POST'});
+  document.getElementById('fwOut').textContent=await r.text();
+}
+async function fwAddCopy(){
+  const lines=document.getElementById('fwCopy').value.split(/\n/).map(x=>x.trim()).filter(Boolean);
+  for(const text of lines){
+    await fetch('/framework/copies?text='+encodeURIComponent(text),{method:'POST'});
+  }
+  document.getElementById('fwOut').textContent='已入库 '+lines.length;
+}
+async function fwMatch(){
+  const r=await fetch('/framework/match?context='+encodeURIComponent(document.getElementById('fwCtx').value),{method:'POST'});
+  document.getElementById('fwOut').textContent=await r.text();
+}
+fwLoad();
+</script>
 <script>
 
 function updateAccTotal(list){
@@ -484,7 +668,7 @@ function switchTab(name){
 
   document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  document.getElementById('panel-'+name).classList.remove('hidden');
+  const _p=document.getElementById('panel-'+name); if(_p) _p.classList.remove('hidden');
 
   if(name==='join'){
     fetch('/targets/join/jobs').then(r=>r.json()).then(list=>{
@@ -493,12 +677,15 @@ function switchTab(name){
     }).catch(()=>{});
   }
 
-  document.getElementById('tab-'+name).classList.add('active');
+  const _t=document.getElementById('tab-'+name); if(_t) _t.classList.add('active');
   if(name==='accounts')loadAccounts();
   if(name==='apis')loadApis();
   if(name==='proxies')loadProxies();
-  if(name==='targets'||name==='join'){loadTargets();loadAccounts();}
+  if(name==='targets'){loadTargets();}
   if(name==='add'){loadApis();loadProxies();}
+  if(name==='collect' && typeof loadCopies==='function') loadCopies();
+  if(name==='photos' && typeof loadPhotos==='function') loadPhotos();
+  if(name==='fw'){ if(typeof loadFwPicks==='function') loadFwPicks(); if(typeof fwLoad==='function') fwLoad(); }
 }
 
 async function loadAccounts(){
@@ -535,7 +722,7 @@ async function loadAccounts(){
     const active=currentGroup===name?'active':'';
     return `<div class="group-item rounded-lg px-3 py-2 ${active}" onclick="selectGroup('${name.replace(/'/g,"\\'")}')">
       <div class="text-sm font-medium whitespace-nowrap overflow-visible ${ (window.proxyOkMap||{})[name]===false ? 'text-red-400' : 'text-green-400' }">${i+1}组 · ${name}</div>
-      <div class="text-xs text-gray-400">${list.length}/15 · 在线${online} · 死号${list.filter(a=>a.health_status==='dead').length} ·冻结${list.filter(a=>a.health_status==='frozen').length}</div>
+      <div class="text-xs text-gray-400">${list.length}/22 · 在线${online} · 死号${list.filter(a=>a.health_status==='dead').length} ·冻结${list.filter(a=>a.health_status==='frozen').length}</div>
     </div>`;
   }).join('')||'<p class="text-gray-500 text-sm">暂无线路</p>';
 
@@ -554,12 +741,12 @@ function selectGroup(name){
   // 重新高亮（简单方式：再渲染导航状态）
   const list=allGroups[name]||[];
   const online=list.filter(a=>a.is_online).length;
-  const remain=Math.max(0,15-list.length);
+  const remain=Math.max(0,22-list.length);
 
   let html=`<div class="flex justify-between items-center mb-4 flex-wrap gap-2">
     <div>
       <h3 class="font-semibold ${ (window.proxyOkMap||{})[name]===false?'text-red-400':'text-green-400' }">${name}</h3>
-      <p class="text-xs text-gray-400">${list.length}/15 · 在线${online} · 死号${list.filter(a=>a.health_status==='dead').length} ·冻结${list.filter(a=>a.health_status==='frozen').length} · 剩余${remain}</p>
+      <p class="text-xs text-gray-400">${list.length}/22 · 在线${online} · 死号${list.filter(a=>a.health_status==='dead').length} ·冻结${list.filter(a=>a.health_status==='frozen').length} · 剩余${remain}</p>
     </div>
     <div class="flex gap-2">
       <button onclick="lineOnline('${name.replace(/'/g,"\\'")}')" class="text-sm px-3 py-1.5 bg-green-700 rounded">整组上线</button>
@@ -889,6 +1076,15 @@ async function deleteTarget(id){
   loadTargets();
 }
 
+function chunkTargets(arr, n){ const out=[]; for(let i=0;i<arr.length && out.length<50;i+=n) out.push(arr.slice(i,i+n)); return out; }
+function showTargetGroup(i){
+  const g=(window._targetGroups||[])[i]||[];
+  const box=document.getElementById('targetList');
+  if(!box) return;
+  box.innerHTML=g.map(t=>`<div class="bg-[#0f172a] rounded px-3 py-2 flex justify-between items-center gap-2"><div><div class="text-sm">${t.name}</div><div class="text-xs text-gray-500">${t.link}</div></div><button onclick="refreshMembers(${t.id})" class="text-xs px-2 py-1 bg-gray-700 rounded">刷新人数</button><button onclick="deleteTarget(${t.id})" class="text-xs px-2 py-1 bg-red-800 rounded">删除</button></div>`).join('')||'<p class="text-gray-500">这一组还没有群</p>';
+  document.querySelectorAll('.tg-nav').forEach(b=>b.classList.remove('bg-blue-700'));
+  const cur=document.getElementById('tgNav'+i); if(cur) cur.classList.add('bg-blue-700');
+}
 async function loadTargets(){
   try{
     const list=await(await fetch('/targets/')).json();
@@ -896,6 +1092,17 @@ async function loadTargets(){
       document.getElementById('targetList').innerHTML='<p class="text-red-400">加载失败</p>';
       return;
     }
+    window._targetGroups=chunkTargets(list, 10);
+    const totalEl=document.getElementById('targetTotal');
+    if(totalEl) totalEl.textContent='总计 '+list.length+' 条 · '+window._targetGroups.length+' 组';
+    const nav=document.getElementById('targetGroupNav');
+    if(nav){
+      nav.innerHTML=window._targetGroups.map((g,i)=>`<button id="tgNav${i}" type="button" onclick="showTargetGroup(${i})" class="tg-nav w-full text-left px-3 py-2 rounded bg-slate-800 text-2xl">第${i+1}组 · ${g.length}个群</button>`).join('');
+      if(window._targetGroups.length) showTargetGroup(0);
+    }
+    const sel=document.getElementById('joinTargets');
+    if(sel) sel.innerHTML=list.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+    return;
     document.getElementById('targetList').innerHTML=list.map(t=>`
       <div class="bg-[#0f172a] rounded px-3 py-2 flex justify-between items-center gap-2">
         <div>
@@ -1131,100 +1338,221 @@ window.selectedApiIds = selectedApiIds;
 </script>
 
 <script>
-window.rebalanceIp = async function(){
+async function bootAccounts(){
   try{
-    if(!confirm('把库里全部水军号均匀分配到当前这些IP？')) return;
-    const r = await fetch('/accounts/rebalance-ip', {method:'POST', credentials:'same-origin'});
-    const t = await r.text();
-    let d; try{ d=JSON.parse(t) }catch(e){ alert('返回不是JSON HTTP '+r.status+'\n'+t.slice(0,200)); return; }
-    alert(d.msg || JSON.stringify(d));
-    if(typeof loadProxies==='function') loadProxies();
-    if(typeof loadAccounts==='function') loadAccounts();
+    const accounts = await (await fetch('/accounts/')).json();
+    const proxies = await (await fetch('/pools/proxies')).json();
+    if(!Array.isArray(accounts) || !Array.isArray(proxies)) return;
+    const groups = {};
+    proxies.forEach(p=>{ groups[p.name]=[]; });
+    accounts.forEach(a=>{ const k=a.proxy_name||'未分配'; (groups[k]=groups[k]||[]).push(a); });
+    window.allGroups = groups;
+    const keys = Object.keys(groups);
+    const total = document.getElementById('accTotalCount');
+    if(total) total.textContent = '· 共 '+accounts.length+' 个';
+    const nav = document.getElementById('groupNav');
+    if(!nav) return;
+    nav.innerHTML = keys.map((name,i)=>{
+      const list = groups[name]||[];
+      return `<div class="group-item rounded-lg px-3 py-2" onclick="bootSelect('${name.replace(/'/g,"\\'")}')"><div class="text-sm text-green-400">${i+1}组 · ${name}</div><div class="text-xs text-gray-400">${list.length}/22</div></div>`;
+    }).join('') || '<p class="text-gray-500 text-sm">暂无线路</p>';
+    if(keys.length) bootSelect(keys[0]);
   }catch(e){
-    alert('分配失败: '+e);
+    const nav=document.getElementById('groupNav');
+    if(nav) nav.innerHTML='<p class="text-red-400 text-sm">'+e+'</p>';
   }
-};
-
-window.deleteApi = deleteApi;
-window.deleteSelectedApis = deleteSelectedApis;
-window.deleteAllApis = deleteAllApis;
-window.selectedApiIds = selectedApiIds;
-
+}
+function bootSelect(name){
+  const list = (window.allGroups||{})[name]||[];
+  const box = document.getElementById('workArea');
+  if(!box) return;
+  const online = list.filter(a=>a.is_online).length;
+  let html = `<div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+    <div><h3 class="font-semibold text-green-400">${name}</h3>
+    <p class="text-xs text-gray-400">${list.length}/22 · 在线${online} · 冻结${list.filter(a=>a.health_status==='frozen').length}</p></div>
+    <div class="flex gap-2">
+      <button onclick="lineOnline('${name.replace(/'/g,"\\'")}')" class="text-sm px-3 py-1.5 bg-green-700 rounded">整组上线</button>
+      <button onclick="lineOffline('${name.replace(/'/g,"\\'")}')" class="text-sm px-3 py-1.5 bg-gray-600 rounded">整组下线</button>
+      <button onclick="checkHealthGroup('${name.replace(/'/g,"\\'")}')" class="text-sm px-3 py-1.5 bg-amber-700 rounded">检测活跃</button>
+    </div></div><div class="space-y-2">`;
+  if(!list.length) html += '<p class="text-gray-500 text-sm">该线路暂无水军号</p>';
+  list.forEach(a=>{
+    const nm = (a.phone||a.name||'').replace(/'/g,'');
+    html += `<div class="bg-[#0f172a] rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+      <div><div class="text-sm">${a.phone||a.name}</div>
+      <div class="text-xs ${a.is_online?'text-green-400':'text-red-400'}">${a.is_online?'在线':'离线'}${a.health_status==='frozen'?' ·冻结':a.health_status==='dead'?' ·已死':a.health_status==='active'?' ·活跃':''}</div></div>
+      <div class="flex gap-2">
+        <button onclick="toggleChat('${a.session_name}','${nm}')" class="text-sm px-3 py-1 bg-blue-700 rounded">聊天</button>
+        <button onclick="openProfile('${a.session_name}','${nm}')" class="text-sm px-3 py-1 bg-gray-700 rounded">资料</button>
+        <button onclick="deleteAccount(${a.id})" class="text-sm px-3 py-1 bg-red-800 rounded">删除</button>
+      </div></div>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+bootAccounts();
 </script>
 
-<script src="/static/notes.js?v=1">
-window.deleteApi = deleteApi;
-window.deleteSelectedApis = deleteSelectedApis;
-window.deleteAllApis = deleteAllApis;
-window.selectedApiIds = selectedApiIds;
-
-</script>
-
-<!-- fix-delete-global -->
 <script>
-function selectedApiIds(){
-  return [...document.querySelectorAll('.api-ck:checked')].map(el=>parseInt(el.value)).filter(Boolean);
-}
-async function deleteApi(id){
-  if(!confirm('删除该 API？水军号会留在库里')) return;
-  const r = await fetch('/pools/apis/'+id, {method:'DELETE'});
-  const txt = await r.text();
-  let d = {};
-  try { d = JSON.parse(txt); } catch(e) { alert('删除失败 HTTP '+r.status+' '+txt.slice(0,160)); return; }
-  if(!r.ok){ alert(d.detail || JSON.stringify(d)); return; }
-  alert(d.msg || '已删除');
-  if(typeof loadApis==='function') loadApis();
-  else location.reload();
-}
-async function deleteSelectedApis(){
-  const ids = selectedApiIds();
-  if(!ids.length) return alert('先勾选');
-  if(!confirm('删除选中 '+ids.length+' 条 API？号留在库')) return;
-  const r = await fetch('/pools/apis/delete-batch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids})});
-  const txt = await r.text();
-  let d = {};
-  try { d = JSON.parse(txt); } catch(e) { alert('删除失败 HTTP '+r.status+' '+txt.slice(0,160)); return; }
-  alert(d.msg || JSON.stringify(d));
-  if(typeof loadApis==='function') loadApis();
-  else location.reload();
-}
-async function deleteAllApis(){
-  if(!confirm('清空全部 API？水军号留在库')) return;
-  const r = await fetch('/pools/apis/clear-all', {method:'POST'});
-  const txt = await r.text();
-  alert(txt.slice(0,180));
-  location.reload();
+function switchTab(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById('panel-'+name);
+  if(panel) panel.classList.remove('hidden');
+  const tab=document.getElementById('tab-'+name);
+  if(tab) tab.classList.add('active');
+  if(name==='accounts' && typeof bootAccounts==='function') bootAccounts();
+  if(name==='apis' && typeof loadApis==='function') loadApis();
+  if(name==='proxies' && typeof loadProxies==='function') loadProxies();
+  if(name==='targets' && typeof loadTargets==='function') loadTargets();
+  if(name==='collect' && typeof loadCopies==='function') loadCopies();
+  if(name==='photos' && typeof loadPhotos==='function') loadPhotos();
+  if(name==='fw'){ if(typeof loadFwPicks==='function') loadFwPicks(); if(typeof fwLoad==='function') fwLoad(); }
+  if(name==='add'){ if(typeof loadApis==='function') loadApis(); if(typeof loadProxies==='function') loadProxies(); }
 }
 </script>
 
-
-</html>
-
-<section id="panelGroupOps" class="p-4 space-y-3 text-white">
-  <h2 class="text-lg">水军组 / 目标组 / 文案库</h2>
-  <textarea id="agAccounts" rows="3" placeholder="20个水军账号ID，一行一个" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"></textarea>
-  <input id="agProxy" placeholder="代理ID" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
-  <button type="button" onclick="createArmy()" class="px-3 py-1 rounded bg-blue-600 text-sm">保存水军组</button>
-  <textarea id="tbLinks" rows="4" placeholder="10个群链接，一行一个" class="w-full px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"></textarea>
-  <button type="button" onclick="createBundle()" class="px-3 py-1 rounded bg-blue-600 text-sm">保存目标组</button>
-  <input id="mapArmy" placeholder="水军组ID" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
-  <input id="mapBundle" placeholder="目标组ID" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-sm"/>
-  <button type="button" onclick="mapJoin()" class="px-3 py-1 rounded bg-emerald-700 text-sm">生成加入计划</button>
-  <div id="mapOut" class="text-xs text-gray-300 whitespace-pre-wrap"></div>
-</section>
 <script>
-async function createArmy(){
-  const account_ids=document.getElementById('agAccounts').value.split(/\s+/).map(x=>parseInt(x)).filter(Boolean);
-  const r=await fetch('/group-ops/army',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'水军组',proxy_id:parseInt(document.getElementById('agProxy').value||'0'),account_ids})});
-  alert((await r.text()).slice(0,240));
+async function loadCopies(){
+  const d = await (await fetch('/framework/copies')).json();
+  const box = document.getElementById('copyTable');
+  const cnt = document.getElementById('copyCount');
+  if(cnt) cnt.textContent = '共 '+(d||[]).length+' 条';
+  if(!box) return;
+  box.innerHTML = (d||[]).map(x=>{
+    const tm = new Date((x.created_at||0)*1000).toLocaleString();
+    const src = x.source_group||'监听';
+    const srcHtml = src.replace('水军回复','<span class="text-green-400 font-semibold">水军回复</span>');
+    return '<tr class="border-t border-slate-800"><td class="p-2 whitespace-nowrap">'+tm+'</td><td class="p-2">'+srcHtml+'</td><td class="p-2">'+String(x.text||'').replace(/</g,'<')+'</td></tr>';
+  }).join('') || '<tr><td class="p-2 text-gray-500" colspan="3">暂无</td></tr>';
 }
-async function createBundle(){
-  const links=document.getElementById('tbLinks').value.split(/\n/).map(x=>x.trim()).filter(Boolean);
-  const r=await fetch('/group-ops/bundles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'目标组',links})});
-  alert((await r.text()).slice(0,240));
+async function loadPhotos(){
+  const d = await (await fetch('/framework/photos')).json();
+  const box = document.getElementById('photoGrid');
+  if(!box) return;
+  if(!d.length){ box.innerHTML='<div class="text-gray-500 text-sm">还没有图片</div>'; return; }
+  box.innerHTML = d.map(x=>'<div class="bg-slate-800 p-2 rounded text-xs"><img src="/uploads/avatars/'+String(x.path||'').split('/').pop()+'" class="w-full h-28 object-cover rounded mb-1"/><div>#'+x.id+' 已用'+(x.used||0)+'</div></div>').join('');
 }
-async function mapJoin(){
-  const r=await fetch('/group-ops/join-map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({army_group_id:parseInt(document.getElementById('mapArmy').value),bundle_id:parseInt(document.getElementById('mapBundle').value)})});
-  document.getElementById('mapOut').textContent=await r.text();
+function showTargetGroup(i){
+  const g = (window._targetGroups||[])[i]||[];
+  const box = document.getElementById('targetList');
+  if(!box) return;
+  box.innerHTML = g.map(t=>`<div class="bg-[#0f172a] rounded px-3 py-2 flex justify-between items-center gap-2"><div><div class="text-sm">${t.name}</div><div class="text-xs text-gray-500">${t.link}</div></div><button onclick="deleteTarget(${t.id})" class="text-xs px-2 py-1 bg-red-800 rounded">删除</button></div>`).join('') || '<p class="text-gray-500">这一组还没有群</p>';
+  document.querySelectorAll('.tg-nav').forEach(b=>b.classList.remove('bg-blue-700'));
+  const cur = document.getElementById('tgNav'+i); if(cur) cur.classList.add('bg-blue-700');
+}
+async function loadTargets(){
+  const list = await (await fetch('/targets/')).json();
+  if(!Array.isArray(list)) return;
+  window._targetGroups = [];
+  for(let i=0;i<list.length && window._targetGroups.length<50;i+=10) window._targetGroups.push(list.slice(i,i+10));
+  const total = document.getElementById('targetTotal');
+  if(total) total.textContent = '总计 '+list.length+' 条 · '+window._targetGroups.length+' 组';
+  const nav = document.getElementById('targetGroupNav');
+  if(nav){
+    nav.innerHTML = window._targetGroups.map((g,i)=>`<button id="tgNav${i}" type="button" onclick="showTargetGroup(${i})" class="tg-nav w-full text-left px-3 py-2 rounded bg-slate-800 text-2xl">第${i+1}组 · ${g.length}个群</button>`).join('');
+    if(window._targetGroups.length) showTargetGroup(0);
+  }
+}
+async function loadFwPicks(){
+  const proxies = await (await fetch('/pools/proxies')).json();
+  const accounts = await (await fetch('/accounts/')).json();
+  const targets = await (await fetch('/targets/')).json();
+  window._proxyAccounts = {};
+  (accounts||[]).forEach(a=>{ const k=a.proxy_id||0; (window._proxyAccounts[k]=window._proxyAccounts[k]||[]).push(a); });
+  const ps = document.getElementById('fwProxyPick');
+  if(ps){
+    ps.innerHTML = '<option value="">选择水军管理组</option>'+(proxies||[]).map((p,i)=>`<option value="${p.id}">第${i+1}组 · ${p.name} · 已绑${p.used||0}/22</option>`).join('');
+    ps.onchange = ()=>{ const list=window._proxyAccounts[ps.value]||[]; const el=document.getElementById('fwAccPreview'); if(el) el.textContent = list.length?('本组 '+list.length+' 个号'):'这组还没有号'; };
+  }
+  window._targetGroups = [];
+  for(let i=0;i<(targets||[]).length && window._targetGroups.length<50;i+=10) window._targetGroups.push(targets.slice(i,i+10));
+  const ts = document.getElementById('fwTargetPick');
+  if(ts){
+    ts.innerHTML = '<option value="">选择目标群组</option>'+window._targetGroups.map((g,i)=>`<option value="${i}">第${i+1}组 · ${g.length}个群 · ${(g[0]&&g[0].name)||''}</option>`).join('');
+    ts.onchange = ()=>{ const g=window._targetGroups[ts.value]||[]; const el=document.getElementById('fwLinkPreview'); if(el) el.textContent = g.length?g.map(x=>x.name).join(' / '):'未选目标组'; };
+  }
+}
+async function fwLoad(){
+  const d = await (await fetch('/framework/groups')).json();
+  const box = document.getElementById('fwList');
+  if(!box) return;
+  box.innerHTML = (d||[]).map(g=>`<div class="bg-slate-900 border border-slate-700 rounded px-3 py-2 mb-2 flex justify-between items-center"><div>#${g.id} ${g.name} · 代理${g.proxy_id} · 槽${g.slots} · 监听${g.monitor_online}</div><button type="button" onclick="fwDeleteGroup(${g.id})" class="text-xs px-2 py-1 rounded bg-red-800">删除这组</button></div>`).join('') || '<div class="text-gray-500">还没有保存的代理组</div>';
+}
+</script>
+
+<script>
+async function loadApis(){
+  const d = await (await fetch('/pools/apis')).json();
+  const box = document.getElementById('apiList');
+  if(!box) return;
+  if(!Array.isArray(d) || !d.length){ box.innerHTML='<p class="text-gray-500">暂无 API</p>'; return; }
+  box.innerHTML = d.map(a=>`<div class="bg-[#0f172a] rounded px-3 py-2 flex justify-between items-center gap-2"><label class="flex items-center gap-2"><input type="checkbox" class="api-ck" value="${a.id}"><span>${a.api_id} · 已绑 ${a.used||0}/5</span></label><button onclick="deleteApi(${a.id})" class="text-xs px-2 py-1 bg-red-800 rounded">删除</button></div>`).join('');
+}
+async function loadProxies(){
+  const d = await (await fetch('/pools/proxies')).json();
+  const box = document.getElementById('proxyList');
+  if(!box) return;
+  if(!Array.isArray(d) || !d.length){ box.innerHTML='<p class="text-gray-500">暂无代理</p>'; return; }
+  box.innerHTML = d.map(p=>`<div class="bg-[#0f172a] rounded px-3 py-2 flex justify-between items-center gap-2"><label class="flex items-center gap-2"><input type="checkbox" class="proxy-ck" value="${p.id}"><span>${p.name} · 已绑 ${p.used||0}/22</span></label><button onclick="deleteProxy(${p.id},'${(p.name||'').replace(/'/g,'')}')" class="text-xs px-2 py-1 bg-red-800 rounded">删除</button></div>`).join('');
+}
+</script>
+
+<script>
+async function importZip(){
+  const f = document.getElementById('zipFile').files[0];
+  if(!f) return alert('请选择 ZIP');
+  const fd = new FormData();
+  fd.append('file', f);
+  const box = document.getElementById('zipResult');
+  if(box) box.textContent = '上传中...';
+  try{
+    const startRes = await fetch('/accounts/import-zip/start', {method:'POST', body:fd});
+    const text = await startRes.text();
+    let d;
+    try{ d = JSON.parse(text); }catch(e){ if(box) box.textContent = '返回不是JSON，请重新登录'; return; }
+    if(!d.job_id){ if(box) box.textContent = JSON.stringify(d); return; }
+    if(box) box.textContent = '后台导入中';
+    const poll = async ()=>{
+      const s = await (await fetch('/accounts/import-zip/status/'+d.job_id)).json();
+      if(box) box.textContent = '状态:'+(s.status||'')+' 成功'+(s.success||0)+' 死号'+(s.dead||0)+' 失败'+(s.failed||0)+'\n'+(s.msg||'');
+      if(s.status==='running'||s.status==='pending') setTimeout(poll, 3000);
+      else if(typeof bootAccounts==='function') bootAccounts();
+    };
+    poll();
+  }catch(e){ if(box) box.textContent = String(e); }
+}
+</script>
+
+<script>
+async function fwCreateFromPick(){
+  const proxyId = document.getElementById('fwProxyPick').value;
+  const ti = document.getElementById('fwTargetPick').value;
+  const accs = (window._proxyAccounts[proxyId]||[]).slice(0,22);
+  const links = (window._targetGroups[ti]||[]).map(x=>x.link);
+  if(accs.length!==22) return alert('所选水军组必须正好 22 个号，当前 '+accs.length);
+  if(links.length!==10) return alert('所选目标组必须正好 10 个群，当前 '+links.length);
+  const name = document.getElementById('fwName').value || ('代理组-'+proxyId);
+  const box = document.getElementById('fwOut');
+  if(box) box.textContent = '保存中...';
+  const r = await fetch('/framework/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name, proxy_id:parseInt(proxyId), account_ids:accs.map(a=>a.id), links})});
+  const text = await r.text();
+  if(box) box.textContent = text;
+  if(typeof fwLoad==='function') fwLoad();
+}
+</script>
+
+<script>
+setInterval(()=>{
+  const p = document.getElementById('panel-collect');
+  if(p && !p.classList.contains('hidden') && typeof loadCopies==='function') loadCopies();
+}, 10000);
+</script>
+
+<script>
+async function fwReply(on){
+  const r = await fetch(on ? '/framework/reply/start' : '/framework/reply/stop', {method:'POST'});
+  const d = await r.json();
+  alert(on ? '已开始所有代理回复' : '已停止所有代理回复');
 }
 </script>

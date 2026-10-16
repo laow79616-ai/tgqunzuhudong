@@ -1,5 +1,5 @@
 import asyncio
-PROXY_CAP = 100
+PROXY_CAP = 22
 import os, json, shutil, zipfile, asyncio
 from datetime import datetime
 from sqlalchemy import select, func
@@ -7,7 +7,7 @@ from models import Account, ApiCredential, Proxy
 
 SESSIONS = "/opt/telegram_manager/sessions"
 
-MAX_PER_LINE = 100
+MAX_PER_LINE = 22
 
 async def _load_line_counts(db):
     r = await db.execute(select(Proxy))
@@ -22,7 +22,7 @@ def _pick_line(counts):
     avail = [(pid, n) for pid, n in counts.items() if n < MAX_PER_LINE]
     if not avail:
         return None
-    avail.sort(key=lambda x: x[1])
+    avail.sort(key=lambda x: x[0])
     return avail[0][0]
 
 
@@ -132,9 +132,18 @@ async def import_one(db, phone, sess_src, meta, proxy_id, api_id):
         is_online=False,
         created_at=datetime.utcnow(),
     )
-    db.add(acc)
-    await db.commit()
-    return "ok", phone
+    for _ in range(6):
+        try:
+            db.add(acc)
+            await db.commit()
+            return "ok", phone
+        except Exception as e:
+            await db.rollback()
+            if "locked" in str(e).lower() and _ < 5:
+                await asyncio.sleep(1.5)
+                continue
+            return "fail", f"{phone} 入库失败: {e}"
+    return "fail", f"{phone} 入库失败"
 
 async def run_zip_import(db, zip_path, job, proxy_id=None, api_id=None, proxy_ids=None):
     job["status"] = "running"
@@ -181,7 +190,7 @@ async def run_zip_import(db, zip_path, job, proxy_id=None, api_id=None, proxy_id
                 pid = _pick_line(counts)
                 if not pid:
                     job['failed'] += 1
-                    job['details'].append(f'{phone} 所有线路已满100')
+                    job['details'].append(f'{phone} 所有线路已满22')
                     continue
                 st, msg = await import_one(db, phone, v["session"], meta, pid, api_id)
                 if st=='ok':

@@ -78,6 +78,66 @@ class JoinJobRequest(BaseModel):
     interval: int = 180
 
 
+
+class TargetBatch(BaseModel):
+    text: str
+
+
+@router.post("/batch")
+async def batch_add_targets(req: TargetBatch, db: AsyncSession = Depends(get_db)):
+    from models import Account, Proxy
+    from clients.manager import ClientManager
+    from telethon.tl.functions.messages import CheckChatInviteRequest
+
+    lines = []
+    for raw in req.text.replace(",", "\n").splitlines():
+        link = raw.strip()
+        if link and ("t.me/" in link or link.startswith("@") or link.startswith("+")):
+            if not link.startswith("http") and not link.startswith("@"):
+                link = "https://t.me/" + link.lstrip("+")
+            lines.append(link)
+    if not lines:
+        raise HTTPException(400, "没有有效群链接")
+
+    acc = (await db.execute(select(Account).order_by(Account.id))).scalars().first()
+    client = None
+    if acc:
+        proxy = None
+        if acc.proxy_id:
+            proxy = await db.get(Proxy, acc.proxy_id)
+        try:
+            client = await ClientManager.start_client(acc.session_name, proxy_str=proxy.proxy_str if proxy else None)
+        except Exception:
+            client = None
+
+    success, failed = [], []
+    for link in lines:
+        exists = (await db.execute(select(Target).where(Target.link == link))).scalar_one_or_none()
+        if exists:
+            failed.append(f"{link} 已存在")
+            continue
+        name = ""
+        try:
+            if client:
+                key = link.replace("https://", "").replace("http://", "").replace("t.me/", "").strip("/")
+                if key.startswith("+") or key.startswith("joinchat/"):
+                    invite = key.split("/")[-1].lstrip("+")
+                    info = await client(CheckChatInviteRequest(invite))
+                    name = getattr(info, "title", "") or getattr(getattr(info, "chat", None), "title", "") or ""
+                else:
+                    ent = await client.get_entity(key)
+                    name = getattr(ent, "title", "") or getattr(ent, "first_name", "") or key
+        except Exception as e:
+            failed.append(f"{link} 识别失败: {e}")
+            name = ""
+        if not name:
+            name = link.rsplit("/", 1)[-1][:40] or "未识别群组"
+        row = Target(name=name[:100], link=link)
+        db.add(row)
+        success.append({"link": link, "name": name})
+    await db.commit()
+    return {"success": len(success), "failed_count": len(failed), "items": success, "failed": failed}
+
 @router.post("/")
 async def add_target(req: TargetCreate, db: AsyncSession = Depends(get_db)):
     t = Target(name=req.name, link=req.link)

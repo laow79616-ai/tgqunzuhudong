@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import engine, Base
-from routers import pool_assign, accounts, join, chat, targets, pools, group_ops
+from routers import pool_assign, accounts, join, chat, targets, pools, group_ops, framework
 import uvicorn
 
 app = FastAPI(title="Telegram 水军管理系统", version="2.0")
@@ -14,8 +14,10 @@ app.include_router(chat.router)
 app.include_router(targets.router)
 app.include_router(pools.router)
 app.include_router(group_ops.router)
+app.include_router(framework.router)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.on_event("startup")
 async def startup():
@@ -32,6 +34,12 @@ async def startup():
             await db.execute(update(Account).values(is_online=False))
             await db.commit()
             print("startup: 已清零在线状态")
+        from profile_scheduler import start as start_profile
+        start_profile()
+        from monitor_listener import start as start_monitor
+        start_monitor()
+        from group_runner import start as start_runner
+        start_runner()
     except Exception as e:
         print("startup reset online failed:", e)
 
@@ -80,6 +88,11 @@ async def logout(request: Request):
     token = request.cookies.get("tg_token")
     if token and token in _valid_tokens:
         _valid_tokens.discard(token)
+        try:
+            from auth_util import _save_tokens
+            _save_tokens()
+        except Exception:
+            pass
     resp = RedirectResponse("/login", status_code=302)
     resp.delete_cookie("tg_token")
     return resp

@@ -9,11 +9,11 @@ from models import ApiCredential, Proxy, Account
 
 router = APIRouter(prefix="/pools", tags=["API与代理池"])
 
-API_CAP = 50
-MAX_PER_POOL = 10  # API 每条仍 10
-PROXY_CAP = 100  # 每条代理 100 个号
+API_CAP = 5
+MAX_PER_POOL = 5  # 每条 API 最多 5 个号
+PROXY_CAP = 22  # 每组代理固定 22 个号
 
-MAX_PER_LINE = 100
+MAX_PER_LINE = 22
 
 async def _spread_accounts_off_proxy(db, proxy_id: int):
     """把某条 IP 上的号摊到其它未满线路；摊不完的 proxy_id 置空。"""

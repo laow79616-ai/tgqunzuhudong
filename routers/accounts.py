@@ -16,9 +16,9 @@ from clients.manager import ClientManager
 
 router = APIRouter(prefix="/accounts", tags=["水军管理"])
 
-API_CAP = 50
+API_CAP = 5
 MAX_PER_POOL = API_CAP  # API
-PROXY_CAP = 100  # 每条代理
+PROXY_CAP = 22  # 每组代理固定 22 个号
 
 
 class AddAccountRequest(BaseModel):
@@ -135,6 +135,7 @@ async def list_accounts(db: AsyncSession = Depends(get_db)):
         
         data.append({
             "id": a.id,
+            "proxy_id": a.proxy_id,
             "phone": a.phone,
             "name": a.name,
             "session_name": a.session_name,
@@ -378,7 +379,7 @@ async def import_zip(
     proxy_id: list[int] | None = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
-    """ZIP导入：先检测活跃，死号不导入；自动分配到未满100的代理"""
+    """ZIP导入：先检测活跃，死号不导入；自动分配到未满22的代理"""
     if not file.filename.lower().endswith(".zip"):
         raise HTTPException(400, "请上传 zip 文件")
 
@@ -425,7 +426,7 @@ async def import_zip(
             try:
                 slots = await proxy_slots()
                 if not slots:
-                    failed.append(f"{base}: 所有代理已满(每组100个)")
+                    failed.append(f"{base}: 所有代理已满(每组22个)")
                     break
 
                 json_path = None
@@ -457,10 +458,19 @@ async def import_zip(
                 if os.path.exists(sess_path + "-journal"):
                     shutil.copy2(sess_path + "-journal", dest + "-journal")
 
-                slots.sort(key=lambda x: x[1])
+                slots.sort(key=lambda x: x[0].id)
                 proxy, _used = slots[0]
-                api = apis[api_idx % len(apis)]
-                api_idx += 1
+                api = None
+                for _ in range(len(apis)):
+                    cand = apis[api_idx % len(apis)]
+                    api_idx += 1
+                    used = (await db.execute(select(func.count()).select_from(Account).where(Account.api_id == cand.id))).scalar() or 0
+                    if used < API_CAP:
+                        api = cand
+                        break
+                if api is None:
+                    failed.append(f"{base}: 所有 API 已满(每条{API_CAP}个)")
+                    break
 
                 if api_id:
                     ar = await db.execute(select(ApiCredential).where(ApiCredential.id == int(api_id)))
@@ -659,7 +669,7 @@ async def assign_proxy(req: AssignProxyReq, db: AsyncSession = Depends(get_db)):
     used = (await db.execute(select(Account).where(Account.proxy_id == proxy.id))).scalars().all()
     remain = PROXY_CAP - len(used)
     if remain <= 0:
-        return {"ok": False, "msg": "该线路已满100个"}
+        return {"ok": False, "msg": "该线路已满22个"}
     ok, fail = [], []
     names = req.session_names[:remain]
     extra_cnt = len(req.session_names) - len(names)

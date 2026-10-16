@@ -45,7 +45,7 @@ async def assign_proxy(req: AssignProxyReq, db: AsyncSession = Depends(get_db)):
         if not proxy:
             continue
         used = (await db.execute(select(Account).where(Account.proxy_id == proxy.id))).scalars().all()
-        remain = max(0, 10 - len(used))
+        remain = max(0, 22 - len(used))
         lines.append({"proxy": proxy, "remain": remain})
     if not lines:
         return {"ok": False, "msg": "线路不存在"}

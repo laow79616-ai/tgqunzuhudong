@@ -1,3 +1,4 @@
+from pathlib import Path
 
 import hashlib
 import secrets
@@ -7,12 +8,23 @@ from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 # 登录账号（可后续改环境变量）
 ADMIN_USER = "admin"
 ADMIN_PASS = "Ab123987"
-# 简单 token 存内存（重启后需重新登录）
-_valid_tokens = set()
+# token 落盘，重启后仍有效
+_TOKEN_FILE = Path("/opt/telegram_manager/tokens.txt")
+
+def _load_tokens():
+    if not _TOKEN_FILE.exists():
+        return set()
+    return {x.strip() for x in _TOKEN_FILE.read_text(encoding="utf-8").splitlines() if x.strip()}
+
+def _save_tokens():
+    _TOKEN_FILE.write_text("\n".join(sorted(_valid_tokens)), encoding="utf-8")
+
+_valid_tokens = _load_tokens()
 
 def _make_token():
     t = secrets.token_hex(32)
     _valid_tokens.add(t)
+    _save_tokens()
     return t
 
 def check_token(token: str) -> bool:
